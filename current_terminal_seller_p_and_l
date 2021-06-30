@@ -1,0 +1,4 @@
+select distinct merchant_token
+from app_bi.app_bi_dw.vfact_merchant_revenue_summary
+where product_name = 'Register Terminal'
+and report_date >= current_date - 30
