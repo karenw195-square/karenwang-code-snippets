@@ -67,7 +67,7 @@ select c.merchant_token
 from cohort_2019 c
 left join first_churns f on c.merchant_token = f.merchant_token
 left join app_bi.app_bi_dw.dim_merchant_gpv_segment g on g.currency_code = 'USD' and g.merchant_token = c.merchant_token and greatest(dateadd('day', -91, first_churn_date),first_card_payment_date) between g.effective_begin and g.effective_end
-left join app_bi.app_bi_dw.dim_user du on c.merchant_token = du.merchant_token and du.user_type = 'UNIT'
+left join app_bi.app_bi_dw.dim_user du on c.merchant_token = du.merchant_token and du.user_type = 'unit'
 left join app_bi.app_bi_dw.vfact_daily_processing_summary m on m.key_user = du.key_user and m.report_date between dateadd('day',-91,greatest(dateadd('day', -91, first_churn_date),first_card_payment_date)) and greatest(dateadd('day', -91, first_churn_date),first_card_payment_date)
 group by 1,2,3,4,5,6,7,8,9,10,11,12
 ;
