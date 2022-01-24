@@ -1,24 +1,5 @@
 create or replace table app_payments.app_payments_analyticstemp.cohort_2019_churn_milestones as
-with churns as (
-select merchant_token
-, report_date
-, lag(report_date) over (partition by merchant_token order by report_date) as last_report_date
-from app_payments.app_payments_analytics.merchant_daily_trailing_cohorts
-where product_name = 'ALL'
-and trailing_window = '91 days trailing'
-and merchant_country = 'US'
-and amount_current <= 0
-)
-
-, first_churns as (
-select merchant_token
-, min(report_date) as first_churn_date
-, count(distinct case when last_report_date <> dateadd('day',-1,report_date) or last_report_date is null then report_date else null end) as num_churns
-from churns
-group by 1
-)
-
-, cohort_2019 as (
+with cohort_2019 as (
 select du.user_token as merchant_token
 , du.business_category
 , du.user_created_at
@@ -29,7 +10,44 @@ from app_bi.pentagon.dim_user du
 left join app_bi.pentagon.aggregate_merchant_lifetime_summary m on du.user_token = m.best_available_merchant_token
 where du.country_code = 'US'
 and du.user_type = 'MERCHANT'
-and year(du.user_created_at) = 2019
+and year(m.first_card_payment_date) = 2019
+)
+
+, fill_date as (
+select c.merchant_token
+, dd.report_date
+from app_bi.app_bi_dw.dim_date dd
+cross join cohort_2019 c
+where year(dd.report_date) >= 2019 and dd.report_date <> '9999-09-09'
+    and dd.report_date >= c.first_card_payment_date
+    and dd.report_date <= (select max(report_date) from app_payments.app_payments_analytics.merchant_daily_trailing_cohorts)
+)
+
+, churns as (
+select f.merchant_token
+, f.report_date
+, lag(f.report_date) over (partition by f.merchant_token order by f.report_date) as last_report_date
+, amount_current
+from fill_date f
+left join app_payments.app_payments_analytics.merchant_daily_trailing_cohorts c 
+     on f.merchant_token = c.merchant_token 
+     and f.report_date = c.report_date
+     and c.product_name = 'ALL'
+     and c.trailing_window = '91 days trailing'
+     and c.merchant_country = 'US'
+     and c.amount_current > 0 
+ where c.amount_current is null
+
+    
+)
+
+, first_churns as (
+select merchant_token
+, min(report_date) as first_churn_date
+, count(distinct case when last_report_date <> dateadd('day',-1,report_date) or last_report_date is null then report_date else null end) as num_churns
+from churns
+    
+group by 1
 )
 
 select c.merchant_token
@@ -49,3 +67,4 @@ left join first_churns f on c.merchant_token = f.merchant_token
 left join app_bi.app_bi_dw.dim_merchant_gpv_segment g on g.currency_code = 'USD' and g.merchant_token = c.merchant_token and dateadd('day', -91, first_churn_date) between g.effective_begin and g.effective_end
 left join app_bi.app_bi_dw.vfact_merchant_revenue_summary m on m.merchant_token = c.merchant_token and m.product_category = 'Processing' and report_date between dateadd('day',-91,dateadd('day', -91, first_churn_date)) and dateadd('day', -91, first_churn_date)
 group by 1,2,3,4,5,6,7,8,9,10,11
+;
