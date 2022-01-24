@@ -57,8 +57,9 @@ select c.merchant_token
 , coalesce(num_churns,0) as num_churns
 , case when latest_card_payment_date < current_date - 91 then true else false end is_currently_churn
 , greatest(dateadd('day', -91, first_churn_date),first_card_payment_date) as first_churn_decision_date
-, datediff('day', c.first_card_payment_date, first_churn_decision_date) as tenure_at_churn_decision
-, ceil((tenure_at_churn_decision + 1)/30) as month_at_churn_decision
+, datediff('day', c.first_card_payment_date, first_churn_decision_date) + 1 as day_at_churn_decision
+, ceil(day_at_churn_decision/7) as week_at_churn_decision
+, ceil(day_at_churn_decision/30) as month_at_churn_decision
 , g.merchant_sub_segment as merchant_sub_segment_at_churn_decision
 , sum(transaction_count) / 91 *365 as annualized_pmt_at_churn_decision
 , sum(case when card_presence = 'CNP' then transaction_count else 0 end) / sum(transaction_count) as cnp_rate_at_churn_decision
@@ -67,5 +68,5 @@ left join first_churns f on c.merchant_token = f.merchant_token
 left join app_bi.app_bi_dw.dim_merchant_gpv_segment g on g.currency_code = 'USD' and g.merchant_token = c.merchant_token and greatest(dateadd('day', -91, first_churn_date),first_card_payment_date) between g.effective_begin and g.effective_end
 left join app_bi.app_bi_dw.dim_user du on c.merchant_token = du.merchant_token and du.user_type = 'UNIT'
 left join app_bi.app_bi_dw.vfact_daily_processing_summary m on m.key_user = du.key_user and m.report_date between dateadd('day',-91,greatest(dateadd('day', -91, first_churn_date),first_card_payment_date)) and greatest(dateadd('day', -91, first_churn_date),first_card_payment_date)
-group by 1,2,3,4,5,6,7,8,9,10,11
+group by 1,2,3,4,5,6,7,8,9,10,11,12
 ;
