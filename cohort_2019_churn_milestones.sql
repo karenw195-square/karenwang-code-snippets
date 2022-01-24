@@ -63,6 +63,7 @@ select c.merchant_token
 , g.merchant_sub_segment as merchant_sub_segment_at_churn_decision
 , sum(transaction_count) / 91 *365 as annualized_pmt_at_churn_decision
 , sum(case when card_presence = 'CNP' then transaction_count else 0 end) / sum(transaction_count) as cnp_rate_at_churn_decision
+, sum(case when product_name = 'Register Terminal' then transaction_count else 0 end) / sum(transaction_count) as term_rate_at_churn_decision
 from cohort_2019 c
 left join first_churns f on c.merchant_token = f.merchant_token
 left join app_bi.app_bi_dw.dim_merchant_gpv_segment g on g.currency_code = 'USD' and g.merchant_token = c.merchant_token and greatest(dateadd('day', -91, first_churn_date),first_card_payment_date) between g.effective_begin and g.effective_end
