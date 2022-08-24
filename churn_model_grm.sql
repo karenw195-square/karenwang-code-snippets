@@ -2,7 +2,7 @@
 /*major changes*/
 /* 1) change the training date from '2021-09-01' to '2022-05-01'*/
 /* 2) change the country code inclusion rule from ('US', 'CA', 'JP') to US only*/
-/* 3) get the irrelevant subqueries "am_calls" and "churn_scores"*/
+/* 3) get rid of the irrelevant subqueries "am_calls" and "churn_scores"*/
 /* 4) change a few defining parameters (see comments in-line)*/
 
 with merchant_sample_temp AS
